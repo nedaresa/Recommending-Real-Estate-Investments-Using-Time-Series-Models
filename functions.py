@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from fbprophet import Prophet as proph
+import statsmodels.api as sm
 
 def df_melt(df, id_cols, var_name='time'):
     """
@@ -27,11 +28,11 @@ def retrieve_zip_info(df, zipcode, zip_col_name, info=['City', 'State', 'Metro']
 
 ###### Functions for annualised returns
 def annualised_returns(df):
-    """Function to calculate the annualised return for each zipcode from 2012-01-01 to 2018-01-01
+    """Function to calculate the annualised return for each zipcode from time range assigned to year_month_list.
     Input: dataframe with zipcodes, and the associated annual return for each zipcode in a given year.   
     -----------------------------------------------------------------------------------------------------------
     Output: dataframe with two columns, one for the zipcodes and another for the annualised returns associated
-    with each zipcode during the above mentioned period (ie. Jan-2012 to Jan-2018).
+    with each zipcode during the above mentioned period.
     """
     annualised_return = {} #Given that the result will be one figure, it is best to store it in a dictionary
     #where the key will be the zipcode and the value will be the annualised return.
@@ -80,3 +81,59 @@ def dict_to_df(dictionary):
         df['RegionName'] = i
         merged = pd.concat([merged, df], axis=0)
     return merged
+
+#### functions for SARIMA
+
+def retrieving_zipcode_info(df, intersection):
+    '''
+    This function takes a list of zipcodes and outputs a dictionary with 
+    zipcodes as keys and dataframe with time index as values per zipcode
+    '''
+    top20zipcode = {}
+    
+    for zipcode in intersection:
+        returns = df.loc[(df['RegionName'] == zipcode)][['time', 'value']]
+        returns = returns.set_index('time')
+
+        top20zipcode[zipcode] = returns
+
+    return top20zipcode
+
+
+def model_SARIMA_zipcode(df, pdq,pdqs):
+    '''
+    This function first runs a grid with pdq and seasonal pdq parameters calculated
+    in the SARIMA notebook for the example zipcode 32905 and gets the best AIC value. 
+    Then forecasts for all zipcodes up to 60 steps in future and gets confidence intervals of forecasts.
+    '''
+    ans = []
+    for comb in pdq:
+        for combs in pdqs:
+            try:
+                mod = sm.tsa.statespace.SARIMAX(df,
+                                                order=comb,
+                                                seasonal_order=combs,
+                                                enforce_stationarity=False,
+                                                enforce_invertibility=False)
+
+                output = mod.fit()
+                ans.append([comb, combs, output.aic])
+
+            except:
+                continue
+                
+    ans_df = pd.DataFrame(ans, columns=['pdq', 'pdqs', 'aic'])
+    
+    SARIMA_MODEL = sm.tsa.statespace.SARIMAX(df,
+                                order=ans_df.loc[ans_df['aic'].idxmin()]['pdq'],
+                                seasonal_order=ans_df.loc[ans_df['aic'].idxmin()]['pdqs'],
+                                enforce_stationarity=False,
+                                enforce_invertibility=False)
+
+    output = SARIMA_MODEL.fit()
+    # Get forecast 60 steps ahead in future
+    prediction = output.get_forecast(steps=60)
+
+    # Get confidence intervals of forecasts
+    pred_conf = prediction.conf_int()
+    return prediction
