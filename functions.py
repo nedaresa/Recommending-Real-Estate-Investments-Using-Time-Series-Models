@@ -83,7 +83,6 @@ def dict_to_df(dictionary):
     return merged
 
 #### functions for SARIMA
-
 def retrieving_zipcode_info(df, intersection):
     '''
     This function takes a list of zipcodes and outputs a dictionary with 
@@ -137,3 +136,18 @@ def model_SARIMA_zipcode(df, pdq,pdqs):
     # Get confidence intervals of forecasts
     pred_conf = prediction.conf_int()
     return prediction
+
+#### Functions for rmse
+
+def rmse(df):
+    """Function that returns a sorted dataframe representing the root mean squared error 
+    for each zipcode when inputted a dataframe with zipcodes, actual returns and
+    predicted returns.
+    """
+    rmse = {}
+    df['diff'] = (df['pred_mean'] - df['actual_returns'])**2 
+    for zipcode in df['RegionName_x'].unique():
+        rmse[zipcode] = np.sqrt(concat.loc[concat['RegionName_x'] == zipcode]['diff'].mean())
+    rmse_df = pd.DataFrame(list(rmse.items()), columns=['zipcode', 'root_mse'])
+    rmse_df = rmse_df.sort_values('root_mse', ascending=True)
+    return rmse_df
