@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from fbprophet import Prophet as proph
 
 def df_melt(df, id_cols, var_name='time'):
     """
@@ -48,3 +49,34 @@ def annualised_returns(df):
     #which zipcodes have performed the best for the timeframe selected.
     zipcode_ann_returns_df = zipcode_ann_returns_df.sort_values('Ann_returns', ascending=False)
     return zipcode_ann_returns_df
+
+###### Functions for prophet
+def prophet_forecast(df, zipcodes_list):
+    """ Function that when inputed a dataframe and a list of zipcodes, retrieves a dictionary containing each
+    zipcode as a key and the forecasted values from the Prophet model associated with that zipcode as values.
+    """
+    forecasts = {}    
+    for zipcode in zipcodes_list:
+        returns = df.loc[(df['RegionName'] == zipcode)][['time', 'value']]
+        returns = returns.rename(columns={'time': 'ds','value': 'y'})
+
+        Model = proph(interval_width=0.95)
+        Model.fit(returns)
+
+        future_dates = Model.make_future_dataframe(periods=36, freq='MS')
+        forecast = Model.predict(future_dates)
+
+        forecasts[zipcode] = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
+
+    return forecasts
+
+def dict_to_df(dictionary):
+    """ Function that strips the dictionary into individual dataframes and appends one after the other 
+    to create a merged dataframe.
+    """
+    merged = pd.DataFrame(data=None)
+    for i in dictionary.keys():
+        df = dictionary[i]
+        df['RegionName'] = i
+        merged = pd.concat([merged, df], axis=0)
+    return merged
