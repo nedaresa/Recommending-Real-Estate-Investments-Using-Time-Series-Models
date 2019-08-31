@@ -1,11 +1,18 @@
 
 Juan Julian Herranz, Neda Jabbari, Boping Liu
+
 Aug 30th, 2019
 
 
 ### Objective 
 
 Using the dataset from zillow, select the top five zipcodes that are most promising for real estate investment. 
+
+Data source: 
+
+https://www.zillow.com/research/data/
+
+Upon arrival at the page, navigate to the “Home Values” Section. From the “Data Type” dropdown select “ZHVI Single-Family Home Time Series” and from the “Geography” dropdown select “Zip Code”. At time of writing the lastest month in the data is 2019-07.
 
 Workflow:
 
