@@ -83,7 +83,6 @@ def dict_to_df(dictionary):
     return merged
 
 #### functions for SARIMA
-
 def retrieving_zipcode_info(df, intersection):
     '''
     This function takes a list of zipcodes and outputs a dictionary with 
